@@ -1,5 +1,5 @@
 // ===================== CONFIG =====================
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = 'https://web-telemedicine-255520032221.asia-southeast2.run.app/api';
 
 // ===================== UTILS =====================
 function formatDate(d) {

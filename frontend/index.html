@@ -14,7 +14,7 @@
 <body class="bg-background text-on-surface antialiased">
 
 <!-- ===================== SIDEBAR ===================== -->
-<aside id="sidebar" class="fixed top-0 left-0 z-50 w-[280px] h-full bg-surface-container-lowest border-r border-outline-variant flex flex-col p-md shadow-sm transition-transform duration-300 -translate-x-full lg:translate-x-0 hidden">
+<aside id="sidebar" class="fixed top-0 left-0 z-50 w-[280px] h-full bg-surface-container-lowest border-r border-outline-variant flex flex-col p-md shadow-sm transition-transform duration-300 -translate-x-full lg:translate-x-0 hidden overflow-y-auto">
     <div class="flex justify-between items-center mb-lg lg:block">
         <div>
             <h1 class="font-headline-sm text-headline-sm font-bold text-primary">Posyandu Admin</h1>
@@ -58,10 +58,7 @@
             <span class="font-label-md text-label-md">Settings</span>
         </a>
     </nav>
-    <div class="mt-auto pt-md border-t border-outline-variant space-y-2">
-        <button onclick="openNewCheckupModal()" class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-3 rounded-xl font-label-md shadow-md active:scale-95 transition-transform cursor-pointer hover:bg-green-800">
-            <span class="material-symbols-outlined">add</span> New Checkup
-        </button>
+    <div class="mt-auto pt-md border-t border-outline-variant">
         <a href="#" id="logoutBtnNav" class="flex items-center gap-4 px-4 py-3 text-error hover:bg-error-container/20 rounded-lg">
             <span class="material-symbols-outlined">logout</span>
             <span class="font-label-md">Logout</span>

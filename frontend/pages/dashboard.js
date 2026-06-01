@@ -8,9 +8,6 @@ function getDashboardHTML() {
                 <h2 class="text-headline-lg font-bold">Dashboard Overview</h2>
                 <p class="text-on-surface-variant">Selamat datang, Bidan. Ringkasan aktivitas Posyandu hari ini.</p>
             </div>
-            <button onclick="openNewCheckupModal()" class="bg-secondary text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:opacity-90 cursor-pointer">
-                <span class="material-symbols-outlined">add</span> New Checkup
-            </button>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -79,9 +76,7 @@ function getDashboardHTML() {
                 <div id="imuHariIni" class="space-y-3">
                     <div class="text-sm text-on-surface-variant text-center py-4">Memuat...</div>
                 </div>
-                <button onclick="openNewCheckupModal()" class="mt-4 w-full py-2 rounded-xl border-2 border-dashed border-primary/30 text-primary text-sm font-semibold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                    <span class="material-symbols-outlined text-[18px]">add</span> Tambah Checkup
-                </button>
+
             </div>
         </div>
 
