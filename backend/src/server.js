@@ -9,8 +9,6 @@ const routes  = require('./routes');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
-// (app.listen yang di atas dihapus dari sini)
-
 // ── MIDDLEWARE ────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
@@ -50,19 +48,20 @@ app.use((err, req, res, next) => {
 
 // ── START ─────────────────────────────────────────────
 async function start() {
+  // 1. Jalankan server DULU agar lolos pengecekan Cloud Run
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Backend Web berjalan di port ${PORT}`);
+    console.log(`📋 Backend Mobile temenmu di port 8080`);
+    console.log(`🗄️  Sharing database: ${process.env.DB_NAME}`);
+  });
+
+  // 2. Baru tes koneksi database (tanpa mematikan aplikasi jika gagal)
   try {
     await pool.query('SELECT 1');
     console.log('✅ Database terhubung:', process.env.DB_NAME);
-    
-    // UBAH BAGIAN INI: Tambahkan '0.0.0.0' di sini
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Backend Web berjalan di port ${PORT}`);
-      console.log(`📋 Backend Mobile temenmu di port 8080`);
-      console.log(`🗄️  Sharing database: ${process.env.DB_NAME}`);
-    });
   } catch (err) {
     console.error('❌ Gagal koneksi database:', err.message);
-    process.exit(1);
+    // process.exit(1); <--- Dihapus agar aplikasi tetap hidup meskipun DB bermasalah
   }
 }
 
