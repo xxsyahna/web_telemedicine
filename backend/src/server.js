@@ -9,6 +9,8 @@ const routes  = require('./routes');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
+// (app.listen yang di atas dihapus dari sini)
+
 // ── MIDDLEWARE ────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
@@ -51,8 +53,10 @@ async function start() {
   try {
     await pool.query('SELECT 1');
     console.log('✅ Database terhubung:', process.env.DB_NAME);
-    app.listen(PORT, () => {
-      console.log(`🚀 Backend Web berjalan di http://localhost:${PORT}`);
+    
+    // UBAH BAGIAN INI: Tambahkan '0.0.0.0' di sini
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 Backend Web berjalan di port ${PORT}`);
       console.log(`📋 Backend Mobile temenmu di port 8080`);
       console.log(`🗄️  Sharing database: ${process.env.DB_NAME}`);
     });
