@@ -2,8 +2,6 @@ require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 const dbConfig = {
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
@@ -12,29 +10,33 @@ const dbConfig = {
   queueLimit: 0,
   dateStrings: true,
   connectTimeout: 30000,
-  ssl: { rejectUnauthorized: false },  // ← langsung aktif, tidak pakai if
 };
 
+// Kalau pakai Cloud SQL socket (Cloud Run → Cloud SQL)
 if (process.env.DB_SOCKET_PATH) {
   dbConfig.socketPath = process.env.DB_SOCKET_PATH;
-  delete dbConfig.host;
-  delete dbConfig.port;
+  // Socket tidak perlu SSL
+} else {
+  // Konek via IP biasa
+  dbConfig.host = process.env.DB_HOST;
+  dbConfig.port = Number(process.env.DB_PORT || 3306);
+  if (process.env.DB_SSL === 'true') {
+    dbConfig.ssl = { rejectUnauthorized: false };
+  }
 }
-
-dbConfig.ssl = { rejectUnauthorized: false };
 
 const pool = mysql.createPool(dbConfig);
 
 pool.getConnection()
   .then(conn => {
-    console.log('✅ Database terhubung ke:', process.env.DB_HOST);
+    console.log('✅ Database terhubung:', process.env.DB_SOCKET_PATH || process.env.DB_HOST);
     conn.release();
   })
   .catch(err => {
     console.error('❌ Koneksi DB gagal:', err.code, '-', err.message);
-    console.error('   Host:', process.env.DB_HOST);
-    console.error('   User:', process.env.DB_USER);
-    console.error('   SSL :', process.env.DB_SSL);
+    console.error('   Socket:', process.env.DB_SOCKET_PATH);
+    console.error('   Host  :', process.env.DB_HOST);
+    console.error('   User  :', process.env.DB_USER);
   });
 
 module.exports = pool;
