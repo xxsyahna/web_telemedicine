@@ -7,7 +7,7 @@ const pool    = require('./config/db');
 const routes  = require('./routes');
 
 const app  = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8080;
 
 // ── MIDDLEWARE ────────────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
