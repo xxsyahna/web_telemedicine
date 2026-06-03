@@ -59,14 +59,14 @@ async function loadIbuTable() {
                 <tbody>
                     ${list.map(i => `
                     <tr class="border-b hover:bg-surface-container-low/50">
-                        <td class="p-4 font-medium">${i.pengguna?.nama || '—'}
-                            <div class="text-xs text-on-surface-variant">${i.pengguna?.email || ''}</div>
+                        <td class="p-4 font-medium">${i.nama || '—'}
+                            <div class="text-xs text-on-surface-variant">${i.email || ''}</div>
                         </td>
                         <td class="p-4 text-sm">${i.nik || '—'}</td>
-                        <td class="p-4 text-sm">${i.pengguna?.no_hp || '—'}</td>
+                        <td class="p-4 text-sm">${i.no_hp || '—'}</td>
                         <td class="p-4 text-sm" style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${i.alamat || '—'}</td>
                         <td class="p-4">
-                            <span class="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-semibold">${i.anak?.length || 0} anak</span>
+                            <span class="bg-primary/20 text-primary px-3 py-1 rounded-full text-xs font-semibold">${i.jumlah_anak || 0} anak</span>
                         </td>
                     </tr>`).join('')}
                 </tbody>
