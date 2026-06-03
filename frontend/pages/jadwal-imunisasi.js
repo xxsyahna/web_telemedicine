@@ -260,8 +260,9 @@ window.openEditImunisasiModal = async function (id) {
 // ── Simpan (tambah atau edit) ──────────────────────────────────────────────────
 window.saveImunisasi = async function () {
     const token = localStorage.getItem('pos_token');
-    console.log('token:', token);
     const editId = document.getElementById('imuEditId').value;
+
+    console.log('editId value:', editId); 
     const body = {
         anak_id: document.getElementById('imuAnakId').value,
         nama_vaksin: document.getElementById('imuVaksin').value.trim(),
@@ -273,22 +274,15 @@ window.saveImunisasi = async function () {
         showGlobalToast('Lengkapi semua field!', true); return;
     }
 
-    let res;
-    if (editId) {
-        // UPDATE – PUT /imunisasi/:id
-        res = await fetch(`${BASE_URL}/imunisasi/${editId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-            body: JSON.stringify(body)
-        }).then(r => r.json()).catch(() => null);
-    } else {
-        // CREATE – POST /imunisasi
-        res = await fetch(BASE_URL + '/imunisasi', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-            body: JSON.stringify(body)
-        }).then(r => r.json()).catch(() => null);
-    }
+    const url = editId
+        ? `${BASE_URL}/imunisasi/${editId}`.replace(/\/\//g, '/')
+        : `${BASE_URL}/imunisasi`;
+
+    const res = await fetch(url, {
+        method: editId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).catch(() => null);
 
     if (res?.success) {
         showGlobalToast(editId ? 'Jadwal diperbarui!' : 'Jadwal ditambahkan!');
