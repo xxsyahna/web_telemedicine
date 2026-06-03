@@ -3,12 +3,13 @@ const pool = require('../config/db');
 // GET /api/imunisasi
 async function listImunisasi(req, res, next) {
   try {
-    const { status, bulan, tahun, page = 1, limit = 10 } = req.query;
+    const { status, bulan, tahun, anak_id, page = 1, limit = 10 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
     const params = [];
     let where = 'WHERE 1=1';
 
-    if (status) { where += ' AND im.status = ?'; params.push(status); }
+    if (anak_id) { where += ' AND im.anak_id = ?'; params.push(Number(anak_id)); }
+    if (status)  { where += ' AND im.status = ?';  params.push(status); }
     if (bulan && tahun) {
       where += ' AND MONTH(im.tanggal_jadwal) = ? AND YEAR(im.tanggal_jadwal) = ?';
       params.push(Number(bulan), Number(tahun));
@@ -39,29 +40,37 @@ async function listImunisasi(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-// POST /api/imunisasi - support field nama kita & temenmu
+// POST /api/imunisasi
 async function createImunisasi(req, res, next) {
   try {
-    const anak_id     = req.body.anak_id     ?? req.body.child_id;
-    const nama_vaksin = req.body.nama_vaksin  ?? req.body.vaccine_name;
+    const anak_id        = req.body.anak_id     ?? req.body.child_id;
+    const nama_vaksin    = req.body.nama_vaksin  ?? req.body.vaccine_name;
     const tanggal_jadwal = req.body.tanggal_jadwal ?? req.body.schedule_date;
 
     if (!anak_id || !nama_vaksin || !tanggal_jadwal)
       return res.status(400).json({ success: false, message: 'anak_id, nama_vaksin, tanggal_jadwal wajib diisi.' });
 
     const [anakCheck] = await pool.query('SELECT id FROM anak WHERE id = ?', [anak_id]);
-    if (!anakCheck.length) return res.status(404).json({ success: false, message: 'Data anak tidak ditemukan.' });
+    if (!anakCheck.length)
+      return res.status(404).json({ success: false, message: 'Data anak tidak ditemukan.' });
+
+    const VALID_STATUS = ['pending', 'selesai', 'terjadwal', 'terlewat'];
+    const status = VALID_STATUS.includes(req.body.status) ? req.body.status : 'pending';
 
     const [result] = await pool.query(
       'INSERT INTO imunisasi (anak_id, nama_vaksin, tanggal_jadwal, status) VALUES (?, ?, ?, ?)',
-      [anak_id, nama_vaksin, tanggal_jadwal, 'pending']
+      [anak_id, nama_vaksin, tanggal_jadwal, status]
     );
 
-    return res.status(201).json({ success: true, message: 'Jadwal imunisasi ditambahkan.', data: { id: result.insertId } });
+    return res.status(201).json({
+      success: true,
+      message: 'Jadwal imunisasi ditambahkan.',
+      data: { id: result.insertId },
+    });
   } catch (err) { return next(err); }
 }
 
-// PATCH /api/imunisasi/:id/status - tandai selesai (kompatibel dengan endpoint temenmu)
+// PATCH /api/imunisasi/:id/status
 async function updateStatus(req, res, next) {
   try {
     const { status, tanggal_imunisasi } = req.body;
@@ -69,9 +78,14 @@ async function updateStatus(req, res, next) {
     const tgl = tanggal_imunisasi || new Date().toISOString().split('T')[0];
 
     const [check] = await pool.query('SELECT id FROM imunisasi WHERE id = ?', [req.params.id]);
-    if (!check.length) return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
+    if (!check.length)
+      return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
 
-    await pool.query('UPDATE imunisasi SET status=?, tanggal_imunisasi=? WHERE id=?', [newStatus, tgl, req.params.id]);
+    await pool.query(
+      'UPDATE imunisasi SET status=?, tanggal_imunisasi=? WHERE id=?',
+      [newStatus, tgl, req.params.id]
+    );
+
     return res.json({ success: true, message: `Imunisasi ditandai ${newStatus}.` });
   } catch (err) { return next(err); }
 }

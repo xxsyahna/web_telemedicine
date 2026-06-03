@@ -120,7 +120,6 @@ window.openAnakModal = async function (id = null) {
     const sel = document.getElementById('anakIbuId');
     sel.innerHTML = '<option value="">-- Pilih Ibu --</option>';
     (ibuRes?.data || []).forEach(i => {
-        // Backend ibu mengembalikan flat: i.nama (bukan i.pengguna?.nama)
         sel.innerHTML += `<option value="${i.id}">${i.nama || 'Ibu #' + i.id} (NIK: ${i.nik})</option>`;
     });
 
@@ -179,6 +178,7 @@ window.deleteAnak = async function (id, nama) {
 // ===================== DETAIL ANAK MODAL =====================
 
 window.openDetailAnak = async function (id) {
+    console.log('ID anak:', id, typeof id); 
     const token = localStorage.getItem('pos_token');
     const modal = document.getElementById('detailAnakModal');
     const modalBody = document.getElementById('detailAnakBody');
@@ -188,7 +188,8 @@ window.openDetailAnak = async function (id) {
 
     const [anakRes, imunRes] = await Promise.all([
         fetch(`${BASE_URL}/anak/${id}`, { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()).catch(() => null),
-        fetch(`${BASE_URL}/imunisasi?anak_id=${id}&limit=50`, { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()).catch(() => null),
+        // ✅ FIX: Hapus &status=selesai agar semua status tampil
+        fetch(`${BASE_URL}/imunisasi?anak_id=${id}&limit=50&_=${Date.now()}`, { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()).catch(() => null), 
     ]);
 
     const anak = anakRes?.data;
@@ -198,6 +199,7 @@ window.openDetailAnak = async function (id) {
     }
 
     const pemList = anak.pemeriksaan || [];
+    // ✅ FIX: Hapus .filter() agar semua status tampil (selesai, terjadwal, terlewat)
     const imunList = imunRes?.data || [];
 
     const genderBadge = anak.jenis_kelamin === 'L'

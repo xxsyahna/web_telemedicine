@@ -3,7 +3,10 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { Storage } = require('@google-cloud/storage');
+
+const gcs = new Storage();
+const bucket = gcs.bucket(process.env.GCS_BUCKET_NAME);
 
 function createToken(user) {
   return jwt.sign(
@@ -13,25 +16,16 @@ function createToken(user) {
   );
 }
 
-// ── Multer config untuk upload avatar ──
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = 'uploads/avatar';
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `avatar_${req.user.id}_${Date.now()}${path.extname(file.originalname)}`);
-  }
-});
+// ── Multer config untuk upload avatar (pakai memory, bukan disk) ──
 const avatarFilter = (req, file, cb) => {
   const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
   const ext = path.extname(file.originalname).toLowerCase();
   if (allowed.includes(ext)) cb(null, true);
   else cb(new Error('Format file tidak didukung. Gunakan JPG atau PNG.'));
 };
+
 const uploadAvatar = multer({
-  storage: avatarStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter: avatarFilter,
 });
@@ -108,34 +102,43 @@ async function changePassword(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-// PUT /api/auth/avatar — upload foto profil
+// PUT /api/auth/avatar — upload foto profil ke GCS
 async function handleUploadAvatar(req, res, next) {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'File tidak ditemukan.' });
 
-    // Hapus avatar lama jika ada
+    const filename = `avatar_${req.user.id}_${Date.now()}${path.extname(req.file.originalname)}`;
+    const blob = bucket.file(filename);
+
+    // Upload ke GCS
+    await blob.save(req.file.buffer, {
+      contentType: req.file.mimetype,
+      public: true,
+    });
+
+    const avatarUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET_NAME}/${filename}`;
+
+    // Hapus avatar lama dari GCS jika ada
     const [rows] = await pool.query('SELECT avatar FROM pengguna WHERE id = ?', [req.user.id]);
     const oldAvatar = rows[0]?.avatar;
-    if (oldAvatar) {
-      const oldPath = path.join(__dirname, '..', oldAvatar);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    if (oldAvatar && oldAvatar.includes('storage.googleapis.com')) {
+      const oldFilename = oldAvatar.split('/').pop();
+      await bucket.file(oldFilename).delete().catch(() => {});
     }
 
-    const avatarUrl = `/uploads/avatar/${req.file.filename}`;
     await pool.query('UPDATE pengguna SET avatar = ? WHERE id = ?', [avatarUrl, req.user.id]);
-
     return res.json({ success: true, avatar: avatarUrl });
   } catch (err) { return next(err); }
 }
 
-// DELETE /api/auth/avatar — hapus foto profil
+// DELETE /api/auth/avatar — hapus foto profil dari GCS
 async function deleteAvatar(req, res, next) {
   try {
     const [rows] = await pool.query('SELECT avatar FROM pengguna WHERE id = ?', [req.user.id]);
     const oldAvatar = rows[0]?.avatar;
-    if (oldAvatar) {
-      const oldPath = path.join(__dirname, '..', oldAvatar);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    if (oldAvatar && oldAvatar.includes('storage.googleapis.com')) {
+      const oldFilename = oldAvatar.split('/').pop();
+      await bucket.file(oldFilename).delete().catch(() => {});
     }
     await pool.query('UPDATE pengguna SET avatar = NULL WHERE id = ?', [req.user.id]);
     return res.json({ success: true, message: 'Foto profil berhasil dihapus.' });
