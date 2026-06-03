@@ -12,6 +12,7 @@ const laporanCtrl    = require('../controllers/laporanController');
 // ── AUTH ──────────────────────────────────────────────
 router.post('/auth/login',            authCtrl.login);
 router.get ('/auth/me',               auth, authCtrl.me);
+router.put ('/auth/profile',          auth, authCtrl.updateProfile);       // ← TAMBAHAN
 router.put ('/auth/change-password',  auth, authCtrl.changePassword);
 router.get ('/auth/users',            auth, requireAdmin, authCtrl.listUsers);
 router.post('/auth/users',            auth, requireAdmin, authCtrl.createUser);
