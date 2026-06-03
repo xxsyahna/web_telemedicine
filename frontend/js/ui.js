@@ -65,40 +65,78 @@ window.hitungStatus = function(){
     statusText.textContent=status; preview.classList.remove('hidden');
 };
 
-window.submitCheckup = async function(){
-    const token=localStorage.getItem('pos_token');
-    const anakId=document.getElementById('c_anak_id')?.value;
-    if(!anakId){ showGlobalToast('Pilih anak terlebih dahulu!',true); return; }
-    const tanggal=document.getElementById('c_tgl_periksa')?.value;
-    const body={
+// ===================== FIX: submitCheckup =====================
+// SEBELUMNYA: vaksin yang dicentang selalu di-INSERT baru → bikin duplikat & semua anak kena
+// SESUDAH: cek dulu apakah vaksin sudah ada untuk anak ini
+//   → kalau sudah ada → PATCH status jadi 'selesai'
+//   → kalau belum ada → INSERT baru dengan anak_id yang benar
+window.submitCheckup = async function () {
+    const token = localStorage.getItem('pos_token');
+    const anakId = document.getElementById('c_anak_id')?.value;
+    if (!anakId) { showGlobalToast('Pilih anak terlebih dahulu!', true); return; }
+
+    const tanggal = document.getElementById('c_tgl_periksa')?.value;
+
+    // 1. Simpan data pemeriksaan (BB/TB/LK/catatan)
+    const body = {
         berat_badan: document.getElementById('c_bb')?.value,
         tinggi_badan: document.getElementById('c_tb')?.value,
-        lingkar_kepala: document.getElementById('c_lk')?.value||null,
+        lingkar_kepala: document.getElementById('c_lk')?.value || null,
         tanggal_pemeriksaan: tanggal,
-        catatan: document.getElementById('c_catatan')?.value||null,
+        catatan: document.getElementById('c_catatan')?.value || null,
     };
-    const res=await fetch(`${BASE_URL}/anak/${anakId}/pemeriksaan`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)}).then(r=>r.json()).catch(()=>null);
-    if(!res?.success){ showGlobalToast(res?.message||'Gagal menyimpan',true); return; }
+    const res = await fetch(`${BASE_URL}/anak/${anakId}/pemeriksaan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).catch(() => null);
 
-    // Simpan vaksin yang dicentang dengan status: 'selesai'
-    const checked=[...document.querySelectorAll('#vaksin-checklist input:checked')];
-    for(const cb of checked){
-        await fetch(BASE_URL+'/imunisasi',{
-            method:'POST',
-            headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},
-            body:JSON.stringify({
-                anak_id: anakId,
-                nama_vaksin: cb.value,
-                tanggal_jadwal: tanggal,
-                tanggal: tanggal,
-                status: 'selesai',          // ← vaksin dari checkup langsung selesai
-            })
-        }).then(r=>r.json()).catch(()=>null);
+    if (!res?.success) { showGlobalToast(res?.message || 'Gagal menyimpan', true); return; }
+
+    // 2. Ambil semua imunisasi yang sudah ada untuk anak ini
+    //    → wajib filter by anak_id agar tidak tercampur data anak lain
+    const existingRes = await fetch(`${BASE_URL}/imunisasi?anak_id=${anakId}&limit=100`, {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(r => r.json()).catch(() => null);
+
+    const existingList = existingRes?.data || [];
+
+    // 3. Proses setiap vaksin yang dicentang user
+    const checked = [...document.querySelectorAll('#vaksin-checklist input:checked')];
+    for (const cb of checked) {
+        const namaVaksin = cb.value;
+
+        // Cari apakah vaksin ini sudah terjadwal untuk anak ini
+        const existing = existingList.find(
+            im => im.nama_vaksin === namaVaksin && Number(im.anak_id) === Number(anakId)
+        );
+
+        if (existing) {
+            // Sudah ada jadwalnya → update status saja, jangan insert baru
+            await fetch(`${BASE_URL}/imunisasi/${existing.id}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                body: JSON.stringify({ status: 'selesai', tanggal_imunisasi: tanggal })
+            }).then(r => r.json()).catch(() => null);
+        } else {
+            // Belum ada → insert baru dengan anak_id yang benar
+            await fetch(`${BASE_URL}/imunisasi`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                body: JSON.stringify({
+                    anak_id: Number(anakId),
+                    nama_vaksin: namaVaksin,
+                    tanggal_jadwal: tanggal,
+                    status: 'selesai',
+                })
+            }).then(r => r.json()).catch(() => null);
+        }
     }
+
     closeNewCheckupModal();
     showGlobalToast('Checkup berhasil disimpan!');
-    if(typeof loadDashboard==='function'&&currentPageId==='dashboard') loadDashboard();
-    if(typeof loadPemeriksaan==='function'&&currentPageId==='pemeriksaan-gizi') loadPemeriksaan();
+    if (typeof loadDashboard === 'function' && currentPageId === 'dashboard') loadDashboard();
+    if (typeof loadPemeriksaan === 'function' && currentPageId === 'pemeriksaan-gizi') loadPemeriksaan();
 };
 
 // ===================== MODAL HTML =====================

@@ -15,9 +15,8 @@ router.get ('/auth/me',               auth, authCtrl.me);
 router.put ('/auth/change-password',  auth, authCtrl.changePassword);
 router.get ('/auth/users',            auth, requireAdmin, authCtrl.listUsers);
 router.post('/auth/users',            auth, requireAdmin, authCtrl.createUser);
-// Upload avatar — multer dipakai langsung dari authCtrl
 router.put ('/auth/avatar',           auth, authCtrl.uploadAvatar.single('avatar'), authCtrl.handleUploadAvatar);
-router.delete('/auth/avatar', auth, authCtrl.deleteAvatar);
+router.delete('/auth/avatar',         auth, authCtrl.deleteAvatar);
 
 // ── DASHBOARD ─────────────────────────────────────────
 router.get('/dashboard', auth, requireBidanOrAdmin, dashCtrl.dashboard);
@@ -41,14 +40,15 @@ router.get('/ibu/:id',   auth, requireBidanOrAdmin, ibuCtrl.getIbu);
 router.put('/ibu/:id',   auth, requireBidanOrAdmin, ibuCtrl.updateIbu);
 
 // ── IMUNISASI ─────────────────────────────────────────
-router.get   ('/imunisasi',             auth, requireBidanOrAdmin, imuCtrl.listImunisasi);
-router.post  ('/imunisasi',             auth, requireBidanOrAdmin, imuCtrl.createImunisasi);
-router.patch ('/imunisasi/:id/status',  auth, requireBidanOrAdmin, imuCtrl.updateStatus);
-router.put   ('/imunisasi/:id/selesai', auth, requireBidanOrAdmin, imuCtrl.updateStatus);
-router.delete('/imunisasi/:id',         auth, requireBidanOrAdmin, imuCtrl.deleteImunisasi);
+router.get   ('/imunisasi',              auth, requireBidanOrAdmin, imuCtrl.listImunisasi);
+router.get   ('/imunisasi/:id',          auth, requireBidanOrAdmin, imuCtrl.getImunisasi);
+router.post  ('/imunisasi',              auth, requireBidanOrAdmin, imuCtrl.createImunisasi);
+router.put   ('/imunisasi/:id',          auth, requireBidanOrAdmin, imuCtrl.updateImunisasi);
+router.patch ('/imunisasi/:id/status',   auth, requireBidanOrAdmin, imuCtrl.updateStatus);
+router.put   ('/imunisasi/:id/selesai',  auth, requireBidanOrAdmin, imuCtrl.updateStatus);
+router.delete('/imunisasi/:id',          auth, requireBidanOrAdmin, imuCtrl.deleteImunisasi);
 
 // ── LAPORAN ───────────────────────────────────────────
 router.get ('/laporan/rekap-bulanan',   auth, requireBidanOrAdmin, laporanCtrl.rekapBulanan);
-router.post('/laporan/simpan',          auth, requireBidanOrAdmin, laporanCtrl.simpanLaporan);
 
 module.exports = router;

@@ -1,6 +1,9 @@
 const pool = require('../config/db');
 
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/imunisasi
+// Query params: status, bulan, tahun, anak_id, page, limit
+// ─────────────────────────────────────────────────────────────────────────────
 async function listImunisasi(req, res, next) {
   try {
     const { status, bulan, tahun, anak_id, page = 1, limit = 10 } = req.query;
@@ -8,24 +11,26 @@ async function listImunisasi(req, res, next) {
     const params = [];
     let where = 'WHERE 1=1';
 
-    if (anak_id) { where += ' AND im.anak_id = ?'; params.push(Number(anak_id)); }
-    if (status)  { where += ' AND im.status = ?';  params.push(status); }
+    if (anak_id) { where += ' AND im.anak_id = ?';  params.push(Number(anak_id)); }
+    if (status)  { where += ' AND im.status = ?';   params.push(status); }
     if (bulan && tahun) {
       where += ' AND MONTH(im.tanggal_jadwal) = ? AND YEAR(im.tanggal_jadwal) = ?';
       params.push(Number(bulan), Number(tahun));
     }
 
     const [[{ total }]] = await pool.query(
-      `SELECT COUNT(*) AS total FROM imunisasi im JOIN anak a ON a.id = im.anak_id ${where}`, params
+      `SELECT COUNT(*) AS total FROM imunisasi im JOIN anak a ON a.id = im.anak_id ${where}`,
+      params
     );
 
     const [rows] = await pool.query(
-      `SELECT im.*, a.nama AS nama_anak,
-              pi.nama AS nama_ibu
+      `SELECT im.*,
+              a.nama      AS nama_anak,
+              pi.nama     AS nama_ibu
        FROM imunisasi im
-       JOIN anak a ON a.id = im.anak_id
-       JOIN ibu i ON i.id = a.ibu_id
-       JOIN pengguna pi ON pi.id = i.pengguna_id
+       JOIN anak      a  ON a.id  = im.anak_id
+       JOIN ibu       i  ON i.id  = a.ibu_id
+       JOIN pengguna  pi ON pi.id = i.pengguna_id
        ${where}
        ORDER BY im.tanggal_jadwal ASC
        LIMIT ? OFFSET ?`,
@@ -35,20 +40,55 @@ async function listImunisasi(req, res, next) {
     return res.json({
       success: true,
       data: rows,
-      pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / limit) },
+      pagination: {
+        total,
+        page:       Number(page),
+        limit:      Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
     });
   } catch (err) { return next(err); }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/imunisasi/:id
+// ─────────────────────────────────────────────────────────────────────────────
+async function getImunisasi(req, res, next) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT im.*,
+              a.nama      AS nama_anak,
+              pi.nama     AS nama_ibu
+       FROM imunisasi im
+       JOIN anak      a  ON a.id  = im.anak_id
+       JOIN ibu       i  ON i.id  = a.ibu_id
+       JOIN pengguna  pi ON pi.id = i.pengguna_id
+       WHERE im.id = ?`,
+      [req.params.id]
+    );
+
+    if (!rows.length)
+      return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
+
+    return res.json({ success: true, data: rows[0] });
+  } catch (err) { return next(err); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/imunisasi
+// Body: anak_id, nama_vaksin, tanggal_jadwal, status (opsional)
+// ─────────────────────────────────────────────────────────────────────────────
 async function createImunisasi(req, res, next) {
   try {
-    const anak_id        = req.body.anak_id     ?? req.body.child_id;
-    const nama_vaksin    = req.body.nama_vaksin  ?? req.body.vaccine_name;
-    const tanggal_jadwal = req.body.tanggal_jadwal ?? req.body.schedule_date;
+    const anak_id        = req.body.anak_id        ?? req.body.child_id;
+    const nama_vaksin    = req.body.nama_vaksin     ?? req.body.vaccine_name;
+    const tanggal_jadwal = req.body.tanggal_jadwal  ?? req.body.schedule_date;
 
     if (!anak_id || !nama_vaksin || !tanggal_jadwal)
-      return res.status(400).json({ success: false, message: 'anak_id, nama_vaksin, tanggal_jadwal wajib diisi.' });
+      return res.status(400).json({
+        success: false,
+        message: 'anak_id, nama_vaksin, tanggal_jadwal wajib diisi.',
+      });
 
     const [anakCheck] = await pool.query('SELECT id FROM anak WHERE id = ?', [anak_id]);
     if (!anakCheck.length)
@@ -70,32 +110,96 @@ async function createImunisasi(req, res, next) {
   } catch (err) { return next(err); }
 }
 
-// PATCH /api/imunisasi/:id/status
-async function updateStatus(req, res, next) {
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/imunisasi/:id
+// Body: anak_id, nama_vaksin, tanggal_jadwal  (semua wajib)
+// ─────────────────────────────────────────────────────────────────────────────
+async function updateImunisasi(req, res, next) {
   try {
-    const { status, tanggal_imunisasi } = req.body;
-    const newStatus = status || 'selesai';
-    const tgl = tanggal_imunisasi || new Date().toISOString().split('T')[0];
+    const { id } = req.params;
 
-    const [check] = await pool.query('SELECT id FROM imunisasi WHERE id = ?', [req.params.id]);
+    // Cek jadwal ada
+    const [check] = await pool.query('SELECT id, status FROM imunisasi WHERE id = ?', [id]);
     if (!check.length)
       return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
 
+    const anak_id        = req.body.anak_id        ?? req.body.child_id;
+    const nama_vaksin    = (req.body.nama_vaksin    ?? req.body.vaccine_name)?.trim();
+    const tanggal_jadwal = req.body.tanggal_jadwal  ?? req.body.schedule_date;
+
+    if (!anak_id || !nama_vaksin || !tanggal_jadwal)
+      return res.status(400).json({
+        success: false,
+        message: 'anak_id, nama_vaksin, tanggal_jadwal wajib diisi.',
+      });
+
+    // Cek anak ada
+    const [anakCheck] = await pool.query('SELECT id FROM anak WHERE id = ?', [anak_id]);
+    if (!anakCheck.length)
+      return res.status(404).json({ success: false, message: 'Data anak tidak ditemukan.' });
+
+    const VALID_STATUS = ['pending', 'selesai', 'terjadwal', 'terlewat'];
+    const status = VALID_STATUS.includes(req.body.status) ? req.body.status : check[0].status;
+    const tanggal_imunisasi = status === 'selesai'
+      ? (req.body.tanggal_imunisasi || new Date().toISOString().split('T')[0])
+      : null;
+
     await pool.query(
-      'UPDATE imunisasi SET status=?, tanggal_imunisasi=? WHERE id=?',
-      [newStatus, tgl, req.params.id]
+      'UPDATE imunisasi SET anak_id = ?, nama_vaksin = ?, tanggal_jadwal = ?, status = ?, tanggal_imunisasi = ? WHERE id = ?',
+      [anak_id, nama_vaksin, tanggal_jadwal, status, tanggal_imunisasi, id]
+    );
+
+    return res.json({ success: true, message: 'Jadwal imunisasi diperbarui.' });
+  } catch (err) { return next(err); }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/imunisasi/:id/status
+// Body: status, tanggal_imunisasi (opsional)
+// ─────────────────────────────────────────────────────────────────────────────
+async function updateStatus(req, res, next) {
+  try {
+    const { id } = req.params;
+
+    const [check] = await pool.query('SELECT id FROM imunisasi WHERE id = ?', [id]);
+    if (!check.length)
+      return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
+
+    const VALID_STATUS = ['pending', 'selesai', 'terjadwal', 'terlewat'];
+    const newStatus = VALID_STATUS.includes(req.body.status) ? req.body.status : 'selesai';
+    const tgl = req.body.tanggal_imunisasi || new Date().toISOString().split('T')[0];
+
+    await pool.query(
+      'UPDATE imunisasi SET status = ?, tanggal_imunisasi = ? WHERE id = ?',
+      [newStatus, tgl, id]
     );
 
     return res.json({ success: true, message: `Imunisasi ditandai ${newStatus}.` });
   } catch (err) { return next(err); }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // DELETE /api/imunisasi/:id
+// ─────────────────────────────────────────────────────────────────────────────
 async function deleteImunisasi(req, res, next) {
   try {
-    await pool.query('DELETE FROM imunisasi WHERE id = ?', [req.params.id]);
+    const { id } = req.params;
+
+    const [check] = await pool.query('SELECT id FROM imunisasi WHERE id = ?', [id]);
+    if (!check.length)
+      return res.status(404).json({ success: false, message: 'Jadwal tidak ditemukan.' });
+
+    await pool.query('DELETE FROM imunisasi WHERE id = ?', [id]);
+
     return res.json({ success: true, message: 'Jadwal imunisasi dihapus.' });
   } catch (err) { return next(err); }
 }
 
-module.exports = { listImunisasi, createImunisasi, updateStatus, deleteImunisasi };
+module.exports = {
+  listImunisasi,
+  getImunisasi,
+  createImunisasi,
+  updateImunisasi,
+  updateStatus,
+  deleteImunisasi,
+};
