@@ -56,7 +56,7 @@ web_telemedicine/
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/username/web_telemedicine.git
+git clone https://github.com/xxsyahna/web_telemedicine.git
 cd web_telemedicine
 ```
 
@@ -66,31 +66,7 @@ cd backend
 npm install
 ```
 
-Buat file `.env` di folder `backend/`:
-```env
-# Server
-PORT=8080
-
-# Database
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=password_kamu
-DB_NAME=posyandu_db
-
-# Opsional: Google Cloud SQL (Cloud Run)
-# DB_SOCKET_PATH=/cloudsql/project:region:instance
-# DB_SSL=false
-
-# JWT
-JWT_SECRET=ganti_dengan_secret_yang_kuat
-
-# Google Cloud Storage (untuk upload foto)
-GCS_BUCKET_NAME=nama_bucket_kamu
-
-# Frontend URL (untuk CORS)
-FRONTEND_URL=http://localhost:3000
-```
+Buat file `.env` di folder `backend/` 
 
 Jalankan seed data awal (opsional):
 ```bash
@@ -235,4 +211,4 @@ Frontend bisa di-deploy ke **Firebase Hosting**, **Netlify**, atau **Cloud Stora
 
 ## 📝 Lisensi
 
-Proyek ini dibuat untuk keperluan akademik.
+Proyek ini dibuat untuk keperluan akademi.
