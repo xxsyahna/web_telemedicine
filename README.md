@@ -98,6 +98,8 @@ Buka browser ke `http://localhost:3000` (atau port yang tersedia).
 
 Base URL: `http://localhost:8080/api`
 
+Total: **29 endpoint**
+
 ### Auth
 | Method | Endpoint | Akses | Keterangan |
 |--------|----------|-------|------------|
@@ -105,10 +107,10 @@ Base URL: `http://localhost:8080/api`
 | GET | `/auth/me` | Auth | Info user login |
 | PUT | `/auth/profile` | Auth | Update profil |
 | PUT | `/auth/change-password` | Auth | Ganti password |
-| PUT | `/auth/avatar` | Auth | Upload foto profil |
-| DELETE | `/auth/avatar` | Auth | Hapus foto profil |
 | GET | `/auth/users` | Admin | Daftar semua user |
 | POST | `/auth/users` | Admin | Buat user baru |
+| PUT | `/auth/avatar` | Auth | Upload foto profil |
+| DELETE | `/auth/avatar` | Auth | Hapus foto profil |
 
 ### Dashboard
 | Method | Endpoint | Akses | Keterangan |
@@ -146,7 +148,8 @@ Base URL: `http://localhost:8080/api`
 | GET | `/imunisasi/:id` | Bidan/Admin | Detail imunisasi |
 | POST | `/imunisasi` | Bidan/Admin | Tambah jadwal |
 | PUT | `/imunisasi/:id` | Bidan/Admin | Update jadwal |
-| PATCH | `/imunisasi/:id/status` | Bidan/Admin | Update status |
+| PATCH | `/imunisasi/:id/status` | Bidan/Admin | Update status imunisasi |
+| PUT | `/imunisasi/:id/selesai` | Bidan/Admin | Tandai imunisasi selesai |
 | DELETE | `/imunisasi/:id` | Bidan/Admin | Hapus jadwal |
 
 ### Laporan
@@ -211,4 +214,4 @@ Frontend bisa di-deploy ke **Firebase Hosting**, **Netlify**, atau **Cloud Stora
 
 ## 📝 Lisensi
 
-Proyek ini dibuat untuk keperluan akademi.
+Proyek ini dibuat untuk keperluan akademik.
